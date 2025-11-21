@@ -228,19 +228,6 @@ importers:
         specifier: ^19.0.0
         version: 19.2.0
 
-  packages/server-client:
-    dependencies:
-      '@solana/client':
-        specifier: workspace:*
-        version: link:../client
-      typescript:
-        specifier: '>=5.3.3'
-        version: 5.9.3
-    devDependencies:
-      '@types/node':
-        specifier: ^24
-        version: 24.10.0
-
   packages/web3-compat:
     dependencies:
       '@solana/addresses':
