@@ -4,6 +4,7 @@
 	"description": "Framework-agnostic Solana client orchestration layer powering higher-level experiences",
 	"exports": {
 		".": {
+			"types": "./dist/types/index.d.ts",
 			"edge-light": {
 				"import": "./dist/index.node.mjs",
 				"require": "./dist/index.node.cjs"
@@ -27,7 +28,8 @@
 		},
 		"./server": {
 			"import": "./dist/server/index.node.mjs",
-			"require": "./dist/server/index.node.cjs"
+			"require": "./dist/server/index.node.cjs",
+			"types": "./dist/types/server/index.d.ts"
 		}
 	},
 	"browser": {
