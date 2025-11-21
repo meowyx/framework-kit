@@ -116,6 +116,7 @@ export type {
 	WalletStatus,
 } from './types';
 export { type AddressLike, toAddress, toAddressString } from './utils/addressLike';
+export { type ClusterMoniker, resolveCluster } from './utils/cluster';
 export { stableStringify } from './utils/stableStringify';
 export { createWalletRegistry } from './wallet/registry';
 export {
