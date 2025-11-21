@@ -2,6 +2,7 @@ import { useSplToken, useWalletSession } from '@solana/react-hooks';
 import { type FormEvent, useState } from 'react';
 
 import { computeSplAmountStep, formatSplBalanceStatus, formatSplTransferStatus } from './demoUi';
+import { UsdcFaucetButton } from './UsdcFaucetButton';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
@@ -72,18 +73,7 @@ export function SplTokenPanel() {
 					<CardTitle>USDC (Devnet)</CardTitle>
 					<CardDescription>
 						Inspect the balance helper and send SPL transfers using the <code>useSplToken</code> hook.
-						<br />
-						<br />
-						Need test USDC?{' '}
-						<a
-							href="https://faucet.circle.com/"
-							target="_blank"
-							rel="noopener noreferrer"
-							className="text-primary underline hover:no-underline"
-						>
-							Get it from the faucet
-						</a>
-						.
+						<UsdcFaucetButton className="mt-4" />
 					</CardDescription>
 				</div>
 			</CardHeader>
