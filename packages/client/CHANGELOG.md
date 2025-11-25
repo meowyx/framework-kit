@@ -1,5 +1,11 @@
 # @solana/client
 
+## 0.2.2
+
+### Patch Changes
+
+- [#50](https://github.com/solana-foundation/framework-kit/pull/50) [`6c3475b`](https://github.com/solana-foundation/framework-kit/commit/6c3475bf8b42ff1587b6f8b76b5cf7feccb1bda2) Thanks [@GuiBibeau](https://github.com/GuiBibeau)! - Standardize exported type aliases for actions/hooks, align the React query defaults with SWR v2, and remove legacy deprecated alias exports to simplify the public surface.
+
 ## 0.2.1
 
 ### Patch Changes
