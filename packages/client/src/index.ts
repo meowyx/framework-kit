@@ -1,3 +1,12 @@
+export {
+	connectWallet,
+	disconnectWallet,
+	fetchAccount,
+	fetchBalance,
+	requestAirdrop,
+	sendTransaction,
+	setCluster,
+} from './actions';
 export { createClient } from './client/createClient';
 export { createClientStore, createDefaultClientStore, createInitialClientState } from './client/createClientStore';
 export {
@@ -114,7 +123,21 @@ export type {
 	ClientState,
 	ClientStore,
 	ClientWatchers,
+	ConnectWalletParameters,
+	ConnectWalletReturnType,
+	DisconnectWalletParameters,
+	DisconnectWalletReturnType,
+	FetchAccountParameters,
+	FetchAccountReturnType,
+	FetchBalanceParameters,
+	FetchBalanceReturnType,
+	RequestAirdropParameters,
+	RequestAirdropReturnType,
+	SendTransactionParameters,
+	SendTransactionReturnType,
 	SerializableSolanaState,
+	SetClusterParameters,
+	SetClusterReturnType,
 	SolanaClient,
 	SolanaClientConfig,
 	WalletConnector,
