@@ -1,5 +1,14 @@
-import { createSolanaRpcClient, type SolanaClientConfig } from '@solana/client';
-import { SolanaProvider, useWalletStandardConnectors } from '@solana/react-hooks';
+import {
+	autoDiscover,
+	backpack,
+	createSolanaRpcClient,
+	injected,
+	phantom,
+	type SolanaClientConfig,
+	solflare,
+	type WalletConnector,
+} from '@solana/client';
+import { SolanaProvider } from '@solana/react-hooks';
 import { Suspense, useMemo } from 'react';
 
 import { AccountInspectorCard } from './components/AccountInspectorCard.tsx';
@@ -27,7 +36,10 @@ const DEFAULT_CLIENT_CONFIG: SolanaClientConfig = {
 };
 
 export default function App() {
-	const walletConnectors = useWalletStandardConnectors();
+	const walletConnectors = useMemo(
+		() => dedupeConnectors([...injected(), ...phantom(), ...solflare(), ...backpack(), ...autoDiscover()]),
+		[],
+	);
 	const rpcClient = useMemo(
 		() =>
 			createSolanaRpcClient({
@@ -56,6 +68,15 @@ export default function App() {
 			<DemoApp />
 		</SolanaProvider>
 	);
+}
+
+function dedupeConnectors(connectors: readonly WalletConnector[]) {
+	const seen = new Set<string>();
+	return connectors.filter((connector) => {
+		if (seen.has(connector.id)) return false;
+		seen.add(connector.id);
+		return true;
+	});
 }
 
 function DemoApp() {
