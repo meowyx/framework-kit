@@ -7,13 +7,15 @@ import type {
 	Signature,
 	Transaction,
 } from '@solana/kit';
-import { address, airdropFactory, getBase58Decoder, getBase64EncodedWireTransaction } from '@solana/kit';
+import { airdropFactory, getBase64EncodedWireTransaction, isSome } from '@solana/kit';
 import type { TransactionWithLastValidBlockHeight } from '@solana/transaction-confirmation';
 import {
 	createBlockHeightExceedencePromiseFactory,
 	createRecentSignatureConfirmationPromiseFactory,
 	waitForRecentTransactionConfirmation,
 } from '@solana/transaction-confirmation';
+import { fetchAddressLookupTable, fetchAllAddressLookupTable } from '@solana-program/address-lookup-table';
+import { fetchNonce } from '@solana-program/system';
 
 import { createLogger, formatError } from '../logging/logger';
 import { createSolanaRpcClient } from '../rpc/createSolanaRpcClient';
@@ -381,43 +383,6 @@ export function createActions({ connectors, logger: inputLogger, runtime, store 
 	}
 
 	/**
-	 * Parses address lookup table data from base64 encoded bytes.
-	 */
-	function parseLookupTableData(base64Data: string): AddressLookupTableData {
-		const base58Decoder = getBase58Decoder();
-		const bytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
-		const view = new DataView(bytes.buffer);
-		let offset = 4; // Skip discriminator
-
-		const deactivationSlot = view.getBigUint64(offset, true);
-		offset += 8;
-		const lastExtendedSlot = view.getBigUint64(offset, true);
-		offset += 8;
-		const lastExtendedSlotStartIndex = view.getUint8(offset);
-		offset += 1;
-
-		const hasAuthority = view.getUint8(offset) === 1;
-		offset += 1;
-		let authority: Address | undefined;
-		if (hasAuthority) {
-			authority = address(base58Decoder.decode(bytes.slice(offset, offset + 32)));
-		}
-		offset += 32;
-
-		// Align to 8-byte boundary
-		offset += (8 - (offset % 8)) % 8;
-
-		// Read addresses
-		const addresses: Address[] = [];
-		while (offset + 32 <= bytes.length) {
-			addresses.push(address(base58Decoder.decode(bytes.slice(offset, offset + 32))));
-			offset += 32;
-		}
-
-		return { addresses, authority, deactivationSlot, lastExtendedSlot, lastExtendedSlotStartIndex };
-	}
-
-	/**
 	 * Fetches an address lookup table.
 	 *
 	 * @param addr - Lookup table address.
@@ -425,14 +390,17 @@ export function createActions({ connectors, logger: inputLogger, runtime, store 
 	 * @returns Parsed lookup table data.
 	 */
 	async function fetchLookupTable(addr: Address, commitment?: Commitment): Promise<AddressLookupTableData> {
-		const response = await runtime.rpc
-			.getAccountInfo(addr, { commitment: getCommitment(commitment), encoding: 'base64' })
-			.send({ abortSignal: AbortSignal.timeout(10_000) });
-		if (!response.value) {
-			throw new Error(`Lookup table not found: ${addr}`);
-		}
-		const [base64Data] = response.value.data as [string, string];
-		return parseLookupTableData(base64Data);
+		const account = await fetchAddressLookupTable(runtime.rpc, addr, {
+			commitment: getCommitment(commitment),
+		});
+		const { addresses, authority, deactivationSlot, lastExtendedSlot, lastExtendedSlotStartIndex } = account.data;
+		return {
+			addresses,
+			authority: isSome(authority) ? authority.value : undefined,
+			deactivationSlot,
+			lastExtendedSlot,
+			lastExtendedSlotStartIndex,
+		};
 	}
 
 	/**
@@ -447,14 +415,16 @@ export function createActions({ connectors, logger: inputLogger, runtime, store 
 		commitment?: Commitment,
 	): Promise<readonly AddressLookupTableData[]> {
 		if (addresses.length === 0) return [];
-		const response = await runtime.rpc
-			.getMultipleAccounts(addresses as Address[], { commitment: getCommitment(commitment), encoding: 'base64' })
-			.send({ abortSignal: AbortSignal.timeout(10_000) });
-		return response.value.map((account, i) => {
-			if (!account) throw new Error(`Lookup table not found: ${addresses[i]}`);
-			const [base64Data] = account.data as [string, string];
-			return parseLookupTableData(base64Data);
+		const accounts = await fetchAllAddressLookupTable(runtime.rpc, addresses as Address[], {
+			commitment: getCommitment(commitment),
 		});
+		return accounts.map(({ data }) => ({
+			addresses: data.addresses,
+			authority: isSome(data.authority) ? data.authority.value : undefined,
+			deactivationSlot: data.deactivationSlot,
+			lastExtendedSlot: data.lastExtendedSlot,
+			lastExtendedSlotStartIndex: data.lastExtendedSlotStartIndex,
+		}));
 	}
 
 	/**
@@ -465,24 +435,10 @@ export function createActions({ connectors, logger: inputLogger, runtime, store 
 	 * @returns Parsed nonce data.
 	 */
 	async function fetchNonceAccount(addr: Address, commitment?: Commitment): Promise<NonceAccountData> {
-		const response = await runtime.rpc
-			.getAccountInfo(addr, { commitment: getCommitment(commitment), encoding: 'jsonParsed' })
-			.send({ abortSignal: AbortSignal.timeout(10_000) });
-		if (!response.value) {
-			throw new Error(`Nonce account not found: ${addr}`);
-		}
-		const parsed = response.value.data as {
-			parsed?: { info?: { authority?: string; blockhash?: string }; type?: string };
-			program?: string;
-		};
-		if (parsed.program !== 'system' || parsed.parsed?.type !== 'nonce') {
-			throw new Error(`Not a nonce account: ${addr}`);
-		}
-		const { authority: auth, blockhash } = parsed.parsed.info ?? {};
-		if (!auth || !blockhash) {
-			throw new Error(`Invalid nonce account data: ${addr}`);
-		}
-		return { authority: address(auth), blockhash };
+		const account = await fetchNonce(runtime.rpc, addr, {
+			commitment: getCommitment(commitment),
+		});
+		return { authority: account.data.authority, blockhash: account.data.blockhash };
 	}
 
 	/**
